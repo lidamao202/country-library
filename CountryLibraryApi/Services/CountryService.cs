@@ -34,16 +34,45 @@ public class CountryService:ICountryService
         List<CountryInfos> countryInfos = new List<CountryInfos>();
         foreach (var item in root.EnumerateArray())
         {
-            var countryInfo = new CountryInfos
+            var countryInfo = new CountryInfos();
+
+            if (item.TryGetProperty("name", out JsonElement nameElement) &&
+                nameElement.TryGetProperty("common", out JsonElement commonName))
             {
-                Name = item.GetProperty("name").GetProperty("common").GetString(),
-                //Alpha2Code = item.GetProperty("alpha2Code").GetString(),
-                Capital = item.GetProperty("capital")[0].GetString(),
-                CallingCodes = int.Parse(item.GetProperty("idd").GetProperty("root")
-                + item.GetProperty("idd").GetProperty("suffixes")[0].GetString()),
-                FlagUrl = item.GetProperty("flags").GetProperty("png").GetString(),
-                Timezones = item.GetProperty("timezones")[0].GetString()
-            };
+                countryInfo.Name = commonName.GetString();
+            }
+            //Alpha2Code = item.GetProperty("alpha2Code").GetString()
+
+            if (item.TryGetProperty("capital", out JsonElement capitalElement) &&
+                capitalElement.ValueKind == JsonValueKind.Array &&
+                capitalElement.GetArrayLength() > 0)
+            {
+                countryInfo.Capital = capitalElement[0].GetString();
+            }
+
+            if (item.TryGetProperty("idd", out JsonElement iddElement))
+            {
+                if (iddElement.TryGetProperty("root", out JsonElement root2) &&
+                    iddElement.TryGetProperty("suffixes", out JsonElement suffixes) &&
+                    suffixes.ValueKind == JsonValueKind.Array &&
+                    suffixes.GetArrayLength() > 0)
+                {
+                    countryInfo.CallingCodes = int.Parse(root2.GetString() + suffixes[0].GetString());
+                }
+            }
+
+            if (item.TryGetProperty("flags", out JsonElement flagsElement) &&
+                flagsElement.TryGetProperty("png", out JsonElement flagUrl))
+            {
+                countryInfo.FlagUrl = flagUrl.GetString();
+            }
+
+            if (item.TryGetProperty("timezones", out JsonElement timezonesElement) &&
+                timezonesElement.ValueKind == JsonValueKind.Array &&
+                timezonesElement.GetArrayLength() > 0)
+            {
+                countryInfo.Timezones = timezonesElement[0].GetString();
+            }
             countryInfos.Add(countryInfo);
         }
         return countryInfos;
